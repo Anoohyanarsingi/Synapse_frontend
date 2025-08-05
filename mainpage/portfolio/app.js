@@ -242,12 +242,12 @@ document.addEventListener("DOMContentLoaded", () => {
         plugins: {
           legend: {
             position: 'top',
-            labels: { color: '#fff', font: { size: 14 } }
+            labels: { color: '#000', font: { size: 14 } }
           },
           title: {
             display: true,
             text: 'Portfolio Distribution',
-            color: '#fff',
+            color: '#000',
             font: { size: 18 }
           }
         }
