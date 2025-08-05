@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portfolio Manager</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-dark text-light">
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-2 bg-secondary p-3 vh-100">
+        <h4 class="text-white mb-4">Portfolio Manager</h4>
+        <button class="btn btn-success w-100 my-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#addAssetModal">Add Asset</button>
+        <button class="btn btn-danger w-100 my-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#removeAssetModal">Remove Asset</button>
+        <button class="btn btn-warning w-100 my-2 shadow-sm animate-btn" id="removeAllAssetsBtn">Liquidate All</button>
+        <button class="btn btn-outline-light w-100 my-2 shadow-sm" id="backToMainMenuBtn">Back to Main Menu</button>
+      </div>
+
+      <!-- Main Dashboard -->
+      <div class="col-md-10 p-4">
+        <h3 class="mb-4">Stock Portfolio Dashboard</h3>
+        <div class="row">
+          <!-- Portfolio Pie Chart -->
+          <div class="col-md-6">
+            <div class="card bg-dark text-light shadow">
+              <div class="card-body">
+                <canvas id="portfolioChart" height="300"></canvas>
+              </div>
+            </div>
+          </div>
+          <!-- Portfolio Summary -->
+          <div class="col-md-6">
+            <div class="card bg-dark text-light shadow">
+              <div class="card-body">
+                <h5 class="card-title">Portfolio Summary</h5>
+                <div class="table-responsive">
+                  <table class="table table-striped table-dark" id="portfolioTable">
+                    <thead>
+                      <tr>
+                        <th>Company</th>
+                        <th>Quantity</th>
+                        <th>Avg. Price</th>
+                        <th>Last Updated</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transaction History -->
+        <div class="row mt-4">
+          <div class="col">
+            <div class="card bg-dark text-light shadow">
+              <div class="card-body">
+                <h5 class="card-title">Transaction History</h5>
+                <div class="table-responsive">
+                  <table class="table table-bordered table-dark" id="transactionTable">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Company</th>
+                        <th>Action</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Asset Modal -->
+  <div class="modal fade" id="addAssetModal" tabindex="-1">
+    <div class="modal-dialog">
+      <form id="addAssetForm" class="modal-content bg-dark text-light">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Asset</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Company</label>
+            <select class="form-select bg-secondary text-light" name="company">
+              <option value="AAPL">Apple (AAPL)</option>
+              <option value="TSLA">Tesla (TSLA)</option>
+              <option value="AMZN">Amazon (AMZN)</option>
+              <option value="FB">Meta (FB)</option>
+              <option value="C">Citigroup (C)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Quantity</label>
+            <input type="number" name="quantity" class="form-control bg-secondary text-light" required min="1">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Price ($)</label>
+            <input type="number" name="price" class="form-control bg-secondary text-light" required min="0.01" step="0.01">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Add Asset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Remove Asset Modal -->
+  <div class="modal fade" id="removeAssetModal" tabindex="-1">
+    <div class="modal-dialog">
+      <form id="removeAssetForm" class="modal-content bg-dark text-light">
+        <div class="modal-header">
+          <h5 class="modal-title">Remove Asset</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Company</label>
+            <select class="form-select bg-secondary text-light" name="company">
+              <option value="AAPL">Apple (AAPL)</option>
+              <option value="TSLA">Tesla (TSLA)</option>
+              <option value="AMZN">Amazon (AMZN)</option>
+              <option value="FB">Meta (FB)</option>
+              <option value="C">Citigroup (C)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Quantity</label>
+            <input type="number" name="quantity" class="form-control bg-secondary text-light" required min="1">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Price ($)</label>
+            <input type="number" name="price" class="form-control bg-secondary text-light" required min="0.01" step="0.01">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-danger">Remove Asset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Liquidate All Modal -->
+  <div class="modal fade" id="liquidateAllModal" tabindex="-1">
+    <div class="modal-dialog">
+      <form id="liquidateAllForm" class="modal-content bg-dark text-light">
+        <div class="modal-header">
+          <h5 class="modal-title">Liquidate All Holdings</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Company</label>
+            <select class="form-select bg-secondary text-light" name="company">
+              <option value="AAPL">Apple (AAPL)</option>
+              <option value="TSLA">Tesla (TSLA)</option>
+              <option value="AMZN">Amazon (AMZN)</option>
+              <option value="FB">Meta (FB)</option>
+              <option value="C">Citigroup (C)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Price ($)</label>
+            <input type="number" name="price" class="form-control bg-secondary text-light" required min="0.01" step="0.01">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning animate-btn">Liquidate All</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+    <div id="toastContainer"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
