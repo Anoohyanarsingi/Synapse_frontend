@@ -1,8 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById('backToMainMenuBtn').addEventListener('click', () => {
-      window.location.href = '../index.html';
-    });
   let balanceChartInstance = null;
+
+  document.getElementById('backToMainMenuBtn').addEventListener('click', () => {
+    window.location.href = '../index.html';
+  });
 
   // Load account data on page load
   loadAccountBalance();
@@ -34,9 +35,6 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast(result.success ? 'Funds added successfully!' : `Error: ${result.message}`, result.success);
       if (result.success) {
         form.reset();
-        document.getElementById('backToMainMenuBtn').addEventListener('click', () => {
-          window.location.href = '../index.html';
-        });
         await loadAccountBalance();
         await loadAccountStatement();
         document.getElementById('addFundsModal').querySelector('.btn-close').click();
@@ -56,6 +54,15 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast('Please enter a valid positive amount.', false);
       return;
     }
+
+    // Client-side balance check
+    const currentBalanceText = document.getElementById('currentBalance').textContent;
+    const currentBalance = parseFloat(currentBalanceText.replace('$', '')) || 0;
+    if (amount > currentBalance) {
+      showToast('Insufficient balance to withdraw this amount.', false);
+      return;
+    }
+
     const data = {
       transaction_amount: Math.round(amount), // Round to match INT in DB
       timestamp: new Date().toISOString().slice(0, 19).replace("T", " ")
