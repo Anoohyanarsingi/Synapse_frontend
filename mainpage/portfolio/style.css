@@ -208,3 +208,13 @@ h3, h4, h5 {
   font-weight: 600;
   color: #1e293b !important;
 }
+.price-display {
+  /* background-color: #d4f4e2; Pastel green for highlight */
+  /* padding: 10px 15px; */
+  /* border-radius: 6px; */
+  font-weight: 600;
+  color: #2e7d32; /* Darker green for contrast */
+  /* border: 2px solid #81c784; /* Pastel green border * */
+  /* margin-top: 8px; */
+  display: inline-block;
+}
