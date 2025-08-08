@@ -5,40 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Portfolio Manager</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
-<body class="bg-light">
+<body>
+  <div class="background-gradient"></div>
   <div class="container-fluid">
     <div class="row">
       <!-- Sidebar -->
-      <div class="col-md-2 bg-secondary p-3 vh-100">
-        <h4 class="text-dark mb-4">Portfolio Manager</h4>
-        <button class="btn btn-success w-100 my-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#addAssetModal">Add Asset</button>
-        <button class="btn btn-danger w-100 my-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#removeAssetModal">Remove Asset</button>
-        <button class="btn btn-warning w-100 my-2 shadow-sm animate-btn" id="removeAllAssetsBtn">Liquidate All</button>
-        <button class="btn btn-outline-dark w-100 my-2 shadow-sm" id="backToMainMenuBtn">Back to Main Menu</button>
-      </div>
+<div class="col-md-2 bg-secondary p-3 vh-100 d-flex flex-column">
+  <h4 class="mb-4">Portfolio Manager</h4>
+  <button class="btn btn-pink w-100 my-2 shadow-sm animate-btn" data-bs-toggle="modal" data-bs-target="#addAssetModal">Add Asset</button>
+  <button class="btn btn-purple w-100 my-2 shadow-sm animate-btn" data-bs-toggle="modal" data-bs-target="#removeAssetModal">Remove Asset</button>
+  <button class="btn btn-purple-dark w-100 my-2 shadow-sm animate-btn" id="removeAllAssetsBtn">Liquidate All</button>
+  <div class="mt-auto sidebar-footer">
+    <button class="btn btn-outline-light w-100 my-2 shadow-sm animate-btn" id="backToMainMenuBtn">Back to Main Menu</button>
+  </div>
+</div>
 
       <!-- Main Dashboard -->
       <div class="col-md-10 p-4">
-        <h3 class="mb-4 text-dark">Stock Portfolio Dashboard</h3>
+        <h3 class="mb-4">Stock Portfolio Dashboard</h3>
         <div class="row">
           <!-- Portfolio Pie Chart -->
           <div class="col-md-6">
-            <div class="card bg-white shadow">
+            <div class="card shadow">
               <div class="card-body">
                 <canvas id="portfolioChart" height="300"></canvas>
               </div>
             </div>
           </div>
-          <!-- Portfolio Summary -->
+          <!-- Portfolio Summary and Balance -->
           <div class="col-md-6">
-            <div class="card bg-white shadow">
+            <div class="card shadow">
               <div class="card-body">
-                <h5 class="card-title text-dark">Portfolio Summary</h5>
+                <h5 class="card-title">Portfolio Summary</h5>
                 <div class="table-responsive">
-                  <table class="table table-striped table-light" id="portfolioTable">
+                  <table class="table table-striped table-dark" id="portfolioTable">
                     <thead>
                       <tr>
                         <th>Company</th>
@@ -52,17 +56,49 @@
                 </div>
               </div>
             </div>
+            <div class="card balance-card mt-2 shadow">
+              <div class="card-body py-2">
+                <h6 class="card-title text-pink mb-0">Current Balance: <span id="currentBalance" class="balance-amount">$0</span></h6>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Price Trend Chart -->
+        <div class="row mt-4">
+          <div class="col-md-12">
+            <div class="card shadow">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="card-title mb-0">Price Trend (Last 24 Hours)</h5>
+                  <select id="priceTrendCompanySelect" class="form-select w-auto">
+                    <option value="">Select a company</option>
+                  </select>
+                </div>
+                <div class="chart-container">
+                  <canvas id="priceTrendChart" height="300"></canvas>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Transaction History -->
         <div class="row mt-4">
           <div class="col">
-            <div class="card bg-white shadow">
+            <div class="card shadow">
               <div class="card-body">
-                <h5 class="card-title text-dark">Transaction History</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="card-title mb-0">Transaction History</h5>
+                  <button id="filterTransactionsBtn" class="btn btn-outline-light btn-sm animate-btn" data-bs-toggle="modal" data-bs-target="#filterTransactionsModal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
+                      <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm-2-4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-4a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/>
+                    </svg>
+                    Filter
+                  </button>
+                </div>
                 <div class="table-responsive">
-                  <table class="table table-bordered table-light" id="transactionTable">
+                  <table class="table table-bordered table-dark" id="transactionTable">
                     <thead>
                       <tr>
                         <th>Date</th>
@@ -86,15 +122,15 @@
   <!-- Add Asset Modal -->
   <div class="modal fade" id="addAssetModal" tabindex="-1">
     <div class="modal-dialog">
-      <form id="addAssetForm" class="modal-content bg-white">
-        <div class="modal-header">
-          <h5 class="modal-title text-dark">Add Asset</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      <form id="addAssetForm" class="modal-content">
+        <div class="modal-header border-pink">
+          <h5 class="modal-title">Add Asset</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label text-dark">Company</label>
-            <select id="addAssetCompanySelect" class="form-select bg-light text-dark" name="company">
+            <label class="form-label">Company</label>
+            <select id="addAssetCompanySelect" class="form-select" name="company">
               <option value="">Select a company</option>
               <option value="AAPL">Apple (AAPL)</option>
               <option value="TSLA">Tesla (TSLA)</option>
@@ -103,16 +139,16 @@
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label text-dark">Quantity</label>
-            <input type="number" name="quantity" class="form-control bg-light text-dark" required min="1">
+            <label class="form-label">Quantity</label>
+            <input type="number" name="quantity" class="form-control" required min="1">
           </div>
           <div class="mb-3">
-            <label class="form-label text-dark">Current Price</label>
-            <div id="addAssetPriceDisplay" class="price-display">Select a company to fetch price</div>
+            <label class="form-label">Current Price</label>
+            <div id="addAssetPriceDisplay" class="price-display text-pink">Select a company to fetch price</div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-success">Add Asset</button>
+          <button type="submit" class="btn btn-pink animate-btn">Add Asset</button>
         </div>
       </form>
     </div>
@@ -121,29 +157,29 @@
   <!-- Remove Asset Modal -->
   <div class="modal fade" id="removeAssetModal" tabindex="-1">
     <div class="modal-dialog">
-      <form id="removeAssetForm" class="modal-content bg-white">
-        <div class="modal-header">
-          <h5 class="modal-title text-dark">Remove Asset</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      <form id="removeAssetForm" class="modal-content">
+        <div class="modal-header border-purple">
+          <h5 class="modal-title">Remove Asset</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label text-dark">Company</label>
-            <select id="removeAssetCompanySelect" class="form-select bg-light text-dark" name="company">
+            <label class="form-label">Company</label>
+            <select id="removeAssetCompanySelect" class="form-select" name="company">
               <option value="">Select a company</option>
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label text-dark">Quantity</label>
-            <input type="number" name="quantity" class="form-control bg-light text-dark" required min="1">
+            <label class="form-label">Quantity</label>
+            <input type="number" name="quantity" class="form-control" required min="1">
           </div>
           <div class="mb-3">
-            <label class="form-label text-dark">Current Price</label>
-            <div id="removeAssetPriceDisplay" class="price-display">Select a company to fetch price</div>
+            <label class="form-label">Current Price</label>
+            <div id="removeAssetPriceDisplay" class="price-display text-purple">Select a company to fetch price</div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-danger">Remove Asset</button>
+          <button type="submit" class="btn btn-purple animate-btn">Remove Asset</button>
         </div>
       </form>
     </div>
@@ -152,26 +188,77 @@
   <!-- Liquidate All Modal -->
   <div class="modal fade" id="liquidateAllModal" tabindex="-1">
     <div class="modal-dialog">
-      <form id="liquidateAllForm" class="modal-content bg-white">
-        <div class="modal-header">
-          <h5 class="modal-title text-dark">Liquidate All Holdings</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      <form id="liquidateAllForm" class="modal-content">
+        <div class="modal-header border-purple">
+          <h5 class="modal-title">Liquidate All Holdings</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label text-dark">Company</label>
-            <select id="liquidateAllCompanySelect" class="form-select bg-light text-dark" name="company">
+            <label class="form-label">Company</label>
+            <select id="liquidateAllCompanySelect" class="form-select" name="company">
               <option value="">Select a company</option>
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label text-dark">Current Price</label>
-            <div id="liquidateAllPriceDisplay" class="price-display">Select a company to fetch price</div>
+            <label class="form-label">Current Price</label>
+            <div id="liquidateAllPriceDisplay" class="price-display text-purple">Select a company to fetch price</div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-warning animate-btn">Liquidate All</button>
+          <button type="button" class="btn btn-outline-light animate-btn" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-purple-dark animate-btn">Liquidate All</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Filter Transactions Modal -->
+  <div class="modal fade" id="filterTransactionsModal" tabindex="-1">
+    <div class="modal-dialog">
+      <form id="filterTransactionsForm" class="modal-content">
+        <div class="modal-header border-pink">
+          <h5 class="modal-title">Filter Transactions</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="companyFilterCheckbox">
+              <label class="form-check-label" for="companyFilterCheckbox">Filter by Company</label>
+            </div>
+            <div id="companyFilter" style="display: none;" class="mt-2">
+              <select id="companyFilterSelect" class="form-select">
+                <option value="">Select a company</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="actionFilterCheckbox">
+              <label class="form-check-label" for="actionFilterCheckbox">Filter by Action</label>
+            </div>
+            <div id="actionFilter" style="display: none;" class="mt-2">
+              <select id="actionFilterSelect" class="form-select">
+                <option value="">Select an action</option>
+                <option value="Buy">Buy</option>
+                <option value="Sell">Sell</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="dateFilterCheckbox">
+              <label class="form-check-label" for="dateFilterCheckbox">Filter by Date</label>
+            </div>
+            <div id="dateFilter" style="display: none;" class="mt-2">
+              <input type="date" id="dateFilterInput" class="form-control">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-light animate-btn" id="resetFilterBtn">Reset</button>
+          <button type="submit" class="btn btn-purple animate-btn">Apply Filter</button>
         </div>
       </form>
     </div>
