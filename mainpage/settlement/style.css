@@ -136,12 +136,12 @@ body.light-theme .btn-outline-light:hover {
   color: #fff;
 }
 
-h1, h3 {
+h1, h3, h5 {
   font-weight: 600;
   color: #e5e7eb;
 }
 
-body.light-theme h1, body.light-theme h3 {
+body.light-theme h1, body.light-theme h3, body.light-theme h5 {
   color: #1e293b;
 }
 
@@ -164,4 +164,190 @@ body.light-theme footer {
 
 body.light-theme .text-muted {
   color: #6b7280 !important;
+}
+
+/* Filter Button */
+#filterStatementBtn {
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Filter Modal Inputs */
+#actionFilterSelect,
+#dateFilterInput {
+  font-size: 0.9rem;
+}
+
+/* Checkbox styles */
+.form-check-input {
+  border-color: #e5e7eb;
+}
+
+.form-check-input:checked {
+  background-color: #8b5cf6;
+  border-color: #8b5cf6;
+}
+
+.form-check-label {
+  color: #e5e7eb;
+}
+
+body.light-theme .form-check-input {
+  border-color: #1e293b;
+}
+
+body.light-theme .form-check-input:checked {
+  background-color: #8b5cf6;
+  border-color: #8b5cf6;
+}
+
+body.light-theme .form-check-label {
+  color: #1e293b;
+}
+
+/* Table styles */
+.table-dark {
+  background-color: rgba(30, 30, 46, 0.9);
+}
+
+body.light-theme .table-dark {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+.table-dark th,
+.table-dark td {
+  border-color: #4b5563;
+}
+
+body.light-theme .table-dark th,
+body.light-theme .table-dark td {
+  border-color: #d1d5db;
+}
+
+.table-striped>tbody>tr:nth-of-type(odd)>* {
+  --bs-table-accent-bg: rgba(75, 85, 99, 0.2);
+}
+
+body.light-theme .table-striped>tbody>tr:nth-of-type(odd)>* {
+  --bs-table-accent-bg: rgba(209, 213, 219, 0.2);
+}
+
+/* Modal styles */
+.modal-content {
+  background-color: rgba(30, 30, 46, 0.9);
+}
+
+body.light-theme .modal-content {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+/* Form controls */
+.form-control,
+.form-select {
+  background-color: #4f4b63;
+  color: #e5e7eb;
+  border-color: #6b7280;
+}
+
+body.light-theme .form-control,
+body.light-theme .form-select {
+  background-color: #f3f4f6;
+  color: #1e293b;
+  border-color: #d1d5db;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: #6b7280;
+  color: #e5e7eb;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
+}
+
+body.light-theme .form-control:focus,
+body.light-theme .form-select:focus {
+  background-color: #e5e7eb;
+  color: #1e293b;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
+}
+
+/* Canvas for chart */
+canvas {
+  background: rgba(30, 30, 46, 0.9);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+body.light-theme canvas {
+  background: rgba(255, 255, 255, 0.95);
+}
+/* Purple shades for buttons */
+.btn-purple-light {
+  background-color: #e4d0ff;
+  color: #2d004d;
+  border: none;
+}
+
+.btn-purple-light:hover {
+  background-color: #d3baff;
+  color: #1e0033;
+}
+
+.btn-purple-medium {
+  background-color: #c3a6ff;
+  color: #2d004d;
+  border: none;
+}
+
+.btn-purple-medium:hover {
+  background-color: #b18dff;
+  color: #1e0033;
+}
+
+.btn-purple-dark {
+  background-color: #a278ff;
+  color: #fff;
+  border: none;
+}
+
+.btn-purple-dark:hover {
+  background-color: #915eff;
+  color: #fff;
+}
+
+/* Ripple effect */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  transform: scale(0);
+  animation: rippleAnim 0.6s linear;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ripple:active::after {
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+@keyframes rippleAnim {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
 }
