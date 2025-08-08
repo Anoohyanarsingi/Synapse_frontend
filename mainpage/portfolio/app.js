@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentPrices = {};
   let allTransactions = [];
   let allCompaniesPriceData = []; // Store price data for all companies
-  
+  let portfolioCompanies = []; // Store company tickers from portfolio
 
   document.getElementById('backToMainMenuBtn').addEventListener('click', () => {
     window.location.href = '../index.html';
@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log(`API response for ${ticker}:`, data);
       if (data && data.price_data && data.price_data.low && data.price_data.low.length > 0) {
         if (forChart) {
-          return data.price_data; // Return full price data for chart
+          return { ...data.price_data, ticker }; // Include ticker in price data
         } else {
           const price = parseFloat(data.price_data.low[data.price_data.low.length - 1]);
           if (priceDisplay) {
@@ -71,7 +71,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const timestamp = new Date(ts + "-04:00"); // Assume EDT
       if (timestamp >= oneDayAgo && timestamp <= latestTimestamp) {
         filtered.timestamps.push(ts.split(' ')[1].slice(0, 5)); // Show only time (HH:mm)
-        filtered.closes.push(parseFloat(priceData.open[index]));
+        filtered.closes.push(parseFloat(priceData.close[index]));
       }
     });
 
@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Combine price data from multiple companies
-  function combinePriceData(priceDataArray) {
+  function combinePriceData(priceDataArray, companies) {
     const combined = {
       timestamps: [],
       closes: [],
@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         });
         combined.closes.push(companyCloses);
-        combined.companies.push(priceData.ticker || `Company ${index + 1}`);
+        combined.companies.push(companies[index] || `Unknown ${index + 1}`); // Use portfolio company ticker
       }
     });
 
@@ -202,35 +202,36 @@ document.addEventListener("DOMContentLoaded", () => {
       priceTrendSelect.innerHTML = '<option value="">Show All Companies</option>';
 
       if (result.success && result.data.length > 0) {
+        portfolioCompanies = result.data.map(item => item.company); // Store company tickers
         // Fetch price data for all companies in parallel
-        const priceDataPromises = result.data.map(item => fetchStockPrice(item.company, null, true));
+        const priceDataPromises = portfolioCompanies.map(company => fetchStockPrice(company, null, true));
         allCompaniesPriceData = await Promise.all(priceDataPromises);
         
-        result.data.forEach(item => {
+        portfolioCompanies.forEach(company => {
           const option1 = document.createElement('option');
-          option1.value = item.company;
-          option1.textContent = item.company;
+          option1.value = company;
+          option1.textContent = company;
           removeAssetSelect.appendChild(option1);
 
           const option2 = document.createElement('option');
-          option2.value = item.company;
-          option2.textContent = item.company;
+          option2.value = company;
+          option2.textContent = company;
           liquidateAllSelect.appendChild(option2);
 
           const option3 = document.createElement('option');
-          option3.value = item.company;
-          option3.textContent = item.company;
+          option3.value = company;
+          option3.textContent = company;
           companyFilterSelect.appendChild(option3);
 
           const option4 = document.createElement('option');
-          option4.value = item.company;
-          option4.textContent = item.company;
+          option4.value = company;
+          option4.textContent = company;
           priceTrendSelect.appendChild(option4);
         });
 
         // Render initial chart with all companies data
         if (allCompaniesPriceData.length > 0) {
-          const combinedData = combinePriceData(allCompaniesPriceData);
+          const combinedData = combinePriceData(allCompaniesPriceData, portfolioCompanies);
           renderPriceTrendChart(combinedData, true);
         }
       } else {
@@ -261,7 +262,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           // Show all companies when "Show All" is selected
           if (allCompaniesPriceData.length > 0) {
-            const combinedData = combinePriceData(allCompaniesPriceData);
+            const combinedData = combinePriceData(allCompaniesPriceData, portfolioCompanies);
             renderPriceTrendChart(combinedData, true);
           }
         }
@@ -306,7 +307,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // [Rest of your existing code remains exactly the same...]
   // Add Asset Form Submission
   document.getElementById('addAssetForm').addEventListener('submit', async (e) => {
     e.preventDefault();
