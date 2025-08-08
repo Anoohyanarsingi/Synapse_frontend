@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   let balanceChartInstance = null;
+  let allStatements = []; // Store all account statement transactions for filtering
 
   document.getElementById('backToMainMenuBtn').addEventListener('click', () => {
     window.location.href = '../index.html';
@@ -19,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     const data = {
-      transaction_amount: Math.round(amount), // Round to match INT in DB
+      transaction_amount: Math.round(amount),
       timestamp: new Date().toISOString().slice(0, 19).replace("T", " ")
     };
 
@@ -31,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const result = await res.json();
-      console.log('Add funds response:', result); // Debug log
+      console.log('Add funds response:', result);
       showToast(result.success ? 'Funds added successfully!' : `Error: ${result.message}`, result.success);
       if (result.success) {
         form.reset();
@@ -64,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const data = {
-      transaction_amount: Math.round(amount), // Round to match INT in DB
+      transaction_amount: Math.round(amount),
       timestamp: new Date().toISOString().slice(0, 19).replace("T", " ")
     };
 
@@ -76,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const result = await res.json();
-      console.log('Withdraw funds response:', result); // Debug log
+      console.log('Withdraw funds response:', result);
       showToast(result.success ? 'Funds withdrawn successfully!' : `Error: ${result.message}`, result.success);
       if (result.success) {
         form.reset();
@@ -94,13 +95,13 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadAccountBalance() {
     try {
       const res = await fetch('http://localhost:5001/viewAcctBalance', {
-        cache: 'no-store' // Prevent caching
+        cache: 'no-store'
       });
       const data = await res.json();
-      console.log('Balance response:', data); // Debug log
+      console.log('Balance response:', data);
       if (data.success && data.data !== null && data.data !== undefined) {
-        const balance = parseInt(data.data); // Ensure INT parsing
-        document.getElementById('currentBalance').textContent = `$${balance.toFixed(0)}`; // No decimals for INT
+        const balance = parseInt(data.data);
+        document.getElementById('currentBalance').textContent = `$${balance.toFixed(0)}`;
       } else {
         document.getElementById('currentBalance').textContent = '$0';
         showToast('No balance data found.', false);
@@ -113,18 +114,37 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Load Account Statement
-  async function loadAccountStatement() {
+  async function loadAccountStatement(filters = {}) {
     try {
       const res = await fetch('http://localhost:5001/viewAcctStatement', {
-        cache: 'no-store' // Prevent caching
+        cache: 'no-store'
       });
       const data = await res.json();
-      console.log('Statement response:', data); // Debug log
+      console.log('Statement response:', data);
       const tbody = document.querySelector('#statementTable tbody');
       tbody.innerHTML = '';
 
-      if (data.success && data.data.length > 0) {
-        data.data.forEach(item => {
+      // Store all transactions for filtering
+      allStatements = data.success && data.data.length > 0 ? data.data : [];
+
+      // Apply filters if provided
+      let filteredStatements = allStatements;
+      if (Object.keys(filters).length > 0) {
+        filteredStatements = allStatements.filter(item => {
+          let matches = true;
+          if (filters.action && filters.action !== '') {
+            matches = matches && item.action.toLowerCase() === filters.action.toLowerCase();
+          }
+          if (filters.date && filters.date !== '') {
+            const itemDate = new Date(item.time_stamp).toISOString().split('T')[0];
+            matches = matches && itemDate === filters.date;
+          }
+          return matches;
+        });
+      }
+
+      if (filteredStatements.length > 0) {
+        filteredStatements.forEach(item => {
           tbody.innerHTML += `
             <tr>
               <td>${new Date(item.time_stamp).toLocaleString()}</td>
@@ -133,7 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <td>$${parseInt(item.current_balance).toFixed(0)}</td>
             </tr>`;
         });
-        updateBalanceChart(data.data);
+        updateBalanceChart(filteredStatements);
       } else {
         tbody.innerHTML = '<tr><td colspan="4" class="text-center">No transactions found.</td></tr>';
         updateBalanceChart([]);
@@ -141,8 +161,65 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error('Error loading statement:', error);
       showToast(`Error loading statement: ${error.message}`, false);
+      updateBalanceChart([]);
     }
   }
+
+  // Filter Statement Modal Logic
+  const filterModal = new bootstrap.Modal(document.getElementById('filterStatementModal'));
+  const actionFilterCheckbox = document.getElementById('actionFilterCheckbox');
+  const dateFilterCheckbox = document.getElementById('dateFilterCheckbox');
+  const actionFilter = document.getElementById('actionFilter');
+  const dateFilter = document.getElementById('dateFilter');
+
+  // Toggle filter input visibility based on checkbox
+  actionFilterCheckbox.addEventListener('change', (e) => {
+    actionFilter.style.display = e.target.checked ? 'block' : 'none';
+  });
+  dateFilterCheckbox.addEventListener('change', (e) => {
+    dateFilter.style.display = e.target.checked ? 'block' : 'none';
+  });
+
+  document.getElementById('filterStatementForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const filters = {};
+
+    if (actionFilterCheckbox.checked) {
+      const actionValue = document.getElementById('actionFilterSelect').value;
+      if (!actionValue) {
+        showToast('Please select an action (Add, Withdraw, Liquidate, or Purchase).', false);
+        return;
+      }
+      filters.action = actionValue;
+    }
+    if (dateFilterCheckbox.checked) {
+      const dateValue = document.getElementById('dateFilterInput').value;
+      if (!dateValue) {
+        showToast('Please select a date for the date filter.', false);
+        return;
+      }
+      filters.date = dateValue;
+    }
+
+    if (Object.keys(filters).length === 0) {
+      showToast('Please select at least one filter criterion.', false);
+      return;
+    }
+
+    loadAccountStatement(filters);
+    filterModal.hide();
+  });
+
+  document.getElementById('resetFilterBtn').addEventListener('click', () => {
+    actionFilterCheckbox.checked = false;
+    dateFilterCheckbox.checked = false;
+    actionFilter.style.display = 'none';
+    dateFilter.style.display = 'none';
+    document.getElementById('actionFilterSelect').value = '';
+    document.getElementById('dateFilterInput').value = '';
+    loadAccountStatement();
+    filterModal.hide();
+  });
 
   // Update Balance Chart (Line Chart)
   function updateBalanceChart(statement) {
