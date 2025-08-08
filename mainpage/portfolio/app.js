@@ -1,29 +1,31 @@
 document.addEventListener("DOMContentLoaded", () => {
   let portfolioChartInstance = null;
-  let currentPrices = {}; // Store fetched prices for each company
+  let priceTrendChartInstance = null;
+  let currentPrices = {};
+  let allTransactions = [];
+  let allCompaniesPriceData = []; // Store price data for all companies
+  
 
   document.getElementById('backToMainMenuBtn').addEventListener('click', () => {
     window.location.href = '../index.html';
   });
 
-  // Load portfolio, transactions, and companies on page load
+  // Load portfolio, transactions, companies, balance, and price trend dropdown on page load
   loadPortfolio();
   loadTransactions();
   populateCompanyDropdowns();
+  loadCurrentBalance();
 
   // Function to fetch stock price from API
-  async function fetchStockPrice(ticker, priceDisplayId, retry = true) {
-    const priceDisplay = document.getElementById(priceDisplayId);
-    if (!priceDisplay) {
-      console.error(`Price display element ${priceDisplayId} not found`);
-      showToast(`Error: Price display element not found`, false);
-      return null;
+  async function fetchStockPrice(ticker, priceDisplayId, forChart = false, retry = true) {
+    const priceDisplay = priceDisplayId ? document.getElementById(priceDisplayId) : null;
+    if (priceDisplay) {
+      priceDisplay.textContent = 'Fetching price...';
     }
-    priceDisplay.textContent = 'Fetching price...';
-    console.log(`Fetching price for ${ticker}`);
+    console.log(`Fetching price for ${ticker}${forChart ? ' (for chart)' : ''}`);
     try {
       const res = await fetch(`https://c4rm9elh30.execute-api.us-east-1.amazonaws.com/default/cachedPriceData?ticker=${ticker}`, {
-        cache: 'no-store' // Prevent caching
+        cache: 'no-store'
       });
       if (!res.ok) {
         throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
@@ -31,10 +33,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       console.log(`API response for ${ticker}:`, data);
       if (data && data.price_data && data.price_data.low && data.price_data.low.length > 0) {
-        const price = parseFloat(data.price_data.low[data.price_data.low.length - 1]);
-        priceDisplay.textContent = `$${price.toFixed(2)}`;
-        console.log(`Price for ${ticker}: $${price.toFixed(2)}`);
-        return price;
+        if (forChart) {
+          return data.price_data; // Return full price data for chart
+        } else {
+          const price = parseFloat(data.price_data.low[data.price_data.low.length - 1]);
+          if (priceDisplay) {
+            priceDisplay.textContent = `$${price.toFixed(2)}`;
+          }
+          console.log(`Price for ${ticker}: $${price.toFixed(2)}`);
+          return price;
+        }
       } else {
         throw new Error('Invalid price data: missing or empty price_data.low');
       }
@@ -43,12 +51,133 @@ document.addEventListener("DOMContentLoaded", () => {
       if (retry && (error.message.includes('HTTP error') || error.message.includes('NetworkError'))) {
         console.log(`Retrying price fetch for ${ticker} in 1 second...`);
         await new Promise(resolve => setTimeout(resolve, 1000));
-        return fetchStockPrice(ticker, priceDisplayId, false);
+        return fetchStockPrice(ticker, priceDisplayId, forChart, false);
       }
-      priceDisplay.textContent = 'Error fetching price';
+      if (priceDisplay) {
+        priceDisplay.textContent = 'Error fetching price';
+      }
       showToast(`Error fetching price for ${ticker}: ${error.message}`, false);
       return null;
     }
+  }
+
+  // Filter last 24 hours of price data
+  function filterLast24Hours(priceData) {
+    const latestTimestamp = new Date(priceData.timestamp[priceData.timestamp.length - 1] + "-04:00"); // Assume EDT
+    const oneDayAgo = new Date(latestTimestamp.getTime() - 24 * 60 * 60 * 1000);
+    const filtered = { timestamps: [], closes: [] };
+
+    priceData.timestamp.forEach((ts, index) => {
+      const timestamp = new Date(ts + "-04:00"); // Assume EDT
+      if (timestamp >= oneDayAgo && timestamp <= latestTimestamp) {
+        filtered.timestamps.push(ts.split(' ')[1].slice(0, 5)); // Show only time (HH:mm)
+        filtered.closes.push(parseFloat(priceData.open[index]));
+      }
+    });
+
+    return filtered;
+  }
+
+  // Combine price data from multiple companies
+  function combinePriceData(priceDataArray) {
+    const combined = {
+      timestamps: [],
+      closes: [],
+      companies: []
+    };
+
+    priceDataArray.forEach((priceData, index) => {
+      if (priceData && priceData.timestamp) {
+        // Use the first company's timestamps as reference
+        if (index === 0) {
+          priceData.timestamp.forEach(ts => {
+            combined.timestamps.push(ts.split(' ')[1].slice(0, 5)); // Format as HH:mm
+          });
+        }
+
+        // Add closing prices for this company
+        const companyCloses = [];
+        priceData.close.forEach((closePrice, idx) => {
+          companyCloses.push({
+            x: priceData.timestamp[idx].split(' ')[1].slice(0, 5),
+            y: parseFloat(closePrice)
+          });
+        });
+        combined.closes.push(companyCloses);
+        combined.companies.push(priceData.ticker || `Company ${index + 1}`);
+      }
+    });
+
+    return combined;
+  }
+
+  // Render price trend chart for single company or all companies
+  function renderPriceTrendChart(data, isCombined = false) {
+    const ctx = document.getElementById('priceTrendChart').getContext('2d');
+    if (priceTrendChartInstance) {
+      priceTrendChartInstance.destroy();
+    }
+
+    const datasets = [];
+    const colors = ['#ec4899', '#8b5cf6', '#3b82f6', '#a278ff', '#10b981', '#f59e0b'];
+
+    if (isCombined && data.companies && data.companies.length > 0) {
+      // Create a dataset for each company
+      data.companies.forEach((company, index) => {
+        datasets.push({
+          label: company,
+          data: data.closes[index],
+          borderColor: colors[index % colors.length],
+          backgroundColor: 'rgba(236, 72, 153, 0.1)',
+          tension: 0.1,
+          pointRadius: 2
+        });
+      });
+    } else {
+      // Single company dataset
+      datasets.push({
+        label: 'Close Price ($)',
+        data: data.closes,
+        borderColor: '#ec4899',
+        backgroundColor: 'rgba(236, 72, 153, 0.1)',
+        fill: true,
+        tension: 0.1
+      });
+    }
+
+    priceTrendChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.timestamps,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            title: { display: true, text: 'Time (HH:mm)', color: '#e5e7eb' },
+            ticks: { color: '#e5e7eb', maxTicksLimit: 10 }
+          },
+          y: {
+            title: { display: true, text: 'Price ($)', color: '#e5e7eb' },
+            ticks: { color: '#e5e7eb' }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: '#e5e7eb', font: { size: 14 } }
+          },
+          title: {
+            display: true,
+            text: isCombined ? 'All Companies Price Trends' : 'Price Trend (Last 24 Hours)',
+            color: '#e5e7eb',
+            font: { size: 18 }
+          }
+        }
+      }
+    });
   }
 
   // Function to populate company dropdowns and attach price fetching logic
@@ -64,31 +193,80 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const removeAssetSelect = document.getElementById('removeAssetCompanySelect');
       const liquidateAllSelect = document.getElementById('liquidateAllCompanySelect');
+      const companyFilterSelect = document.getElementById('companyFilterSelect');
+      const priceTrendSelect = document.getElementById('priceTrendCompanySelect');
 
-      // Clear existing options for remove and liquidate dropdowns
       removeAssetSelect.innerHTML = '<option value="">Select a company</option>';
       liquidateAllSelect.innerHTML = '<option value="">Select a company</option>';
+      companyFilterSelect.innerHTML = '<option value="">Select a company</option>';
+      priceTrendSelect.innerHTML = '<option value="">Show All Companies</option>';
 
       if (result.success && result.data.length > 0) {
+        // Fetch price data for all companies in parallel
+        const priceDataPromises = result.data.map(item => fetchStockPrice(item.company, null, true));
+        allCompaniesPriceData = await Promise.all(priceDataPromises);
+        
         result.data.forEach(item => {
+          const option1 = document.createElement('option');
+          option1.value = item.company;
+          option1.textContent = item.company;
+          removeAssetSelect.appendChild(option1);
+
           const option2 = document.createElement('option');
           option2.value = item.company;
           option2.textContent = item.company;
-          removeAssetSelect.appendChild(option2);
+          liquidateAllSelect.appendChild(option2);
 
           const option3 = document.createElement('option');
           option3.value = item.company;
           option3.textContent = item.company;
-          liquidateAllSelect.appendChild(option3);
+          companyFilterSelect.appendChild(option3);
+
+          const option4 = document.createElement('option');
+          option4.value = item.company;
+          option4.textContent = item.company;
+          priceTrendSelect.appendChild(option4);
         });
+
+        // Render initial chart with all companies data
+        if (allCompaniesPriceData.length > 0) {
+          const combinedData = combinePriceData(allCompaniesPriceData);
+          renderPriceTrendChart(combinedData, true);
+        }
       } else {
         removeAssetSelect.innerHTML = '<option value="">No companies available</option>';
         removeAssetSelect.disabled = true;
         liquidateAllSelect.innerHTML = '<option value="">No companies available</option>';
         liquidateAllSelect.disabled = true;
+        companyFilterSelect.innerHTML = '<option value="">No companies available</option>';
+        companyFilterSelect.disabled = true;
+        priceTrendSelect.innerHTML = '<option value="">No companies available</option>';
+        priceTrendSelect.disabled = true;
       }
 
-      // Add event listeners for add and remove modals
+      // Attach price trend chart update logic
+      priceTrendSelect.addEventListener('change', async (e) => {
+        const ticker = e.target.value;
+        if (ticker) {
+          // Show selected company
+          const priceData = await fetchStockPrice(ticker, null, true);
+          if (priceData) {
+            const filteredData = filterLast24Hours(priceData);
+            if (filteredData.timestamps.length > 0) {
+              renderPriceTrendChart(filteredData);
+            } else {
+              showToast(`No price data available for ${ticker} in the last 24 hours`, false);
+            }
+          }
+        } else {
+          // Show all companies when "Show All" is selected
+          if (allCompaniesPriceData.length > 0) {
+            const combinedData = combinePriceData(allCompaniesPriceData);
+            renderPriceTrendChart(combinedData, true);
+          }
+        }
+      });
+
       const addAssetSelect = document.getElementById('addAssetCompanySelect');
       addAssetSelect.addEventListener('change', async (e) => {
         const ticker = e.target.value;
@@ -114,7 +292,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // Reset price displays when modals are closed
       ['addAssetModal', 'removeAssetModal', 'liquidateAllModal'].forEach(modalId => {
         document.getElementById(modalId).addEventListener('hidden.bs.modal', () => {
           const priceDisplay = document.getElementById(`${modalId.replace('Modal', 'PriceDisplay')}`);
@@ -129,6 +306,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // [Rest of your existing code remains exactly the same...]
   // Add Asset Form Submission
   document.getElementById('addAssetForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -163,6 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loadPortfolio();
         loadTransactions();
         populateCompanyDropdowns();
+        loadCurrentBalance();
         document.getElementById('addAssetModal').querySelector('.btn-close').click();
       }
     } catch (error) {
@@ -205,6 +384,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loadPortfolio();
         loadTransactions();
         populateCompanyDropdowns();
+        loadCurrentBalance();
         document.getElementById('removeAssetModal').querySelector('.btn-close').click();
       }
     } catch (error) {
@@ -218,13 +398,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const modal = new bootstrap.Modal(document.getElementById('liquidateAllModal'));
     modal.show();
 
-    // Replace form to prevent multiple event bindings
     const form = document.getElementById('liquidateAllForm');
     form.replaceWith(form.cloneNode(true));
     const newForm = document.getElementById('liquidateAllForm');
     const liquidateAllSelect = newForm.querySelector('#liquidateAllCompanySelect');
 
-    // Reattach price fetching event listener to new select element
     liquidateAllSelect.addEventListener('change', async (e) => {
       const ticker = e.target.value;
       if (ticker) {
@@ -237,7 +415,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Populate dropdown with companies
     try {
       const res = await fetch('http://localhost:5001/viewPortfolioCompanies', {
         method: 'GET',
@@ -293,6 +470,7 @@ document.addEventListener("DOMContentLoaded", () => {
           loadPortfolio();
           loadTransactions();
           populateCompanyDropdowns();
+          loadCurrentBalance();
           modal.hide();
         }
       } catch (error) {
@@ -301,6 +479,29 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
+
+  // Load Current Balance
+  async function loadCurrentBalance() {
+    try {
+      const res = await fetch('http://localhost:5001/viewAcctBalance', {
+        cache: 'no-store'
+      });
+      const data = await res.json();
+      console.log('Balance response:', data);
+      const balanceDisplay = document.getElementById('currentBalance');
+      if (data.success && data.data !== null && data.data !== undefined) {
+        const balance = parseInt(data.data);
+        balanceDisplay.textContent = `$${balance.toFixed(0)}`;
+      } else {
+        balanceDisplay.textContent = '$0';
+        showToast('No balance data found.', false);
+      }
+    } catch (error) {
+      console.error('Error loading balance:', error);
+      document.getElementById('currentBalance').textContent = '$0';
+      showToast(`Error loading balance: ${error.message}`, false);
+    }
+  }
 
   // Load Portfolio Data
   async function loadPortfolio() {
@@ -334,7 +535,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Load Transaction History
-  async function loadTransactions() {
+  async function loadTransactions(filters = {}) {
     try {
       const res = await fetch('http://localhost:5001/viewTransactionHistory', {
         cache: 'no-store'
@@ -343,8 +544,28 @@ document.addEventListener("DOMContentLoaded", () => {
       const tbody = document.querySelector('#transactionTable tbody');
       tbody.innerHTML = '';
 
-      if (data.success && data.data.length > 0) {
-        data.data.forEach(txn => {
+      allTransactions = data.success && data.data.length > 0 ? data.data : [];
+
+      let filteredTransactions = allTransactions;
+      if (Object.keys(filters).length > 0) {
+        filteredTransactions = allTransactions.filter(txn => {
+          let matches = true;
+          if (filters.company && filters.company !== '') {
+            matches = matches && txn.company === filters.company;
+          }
+          if (filters.action && filters.action !== '') {
+            matches = matches && txn.action.toLowerCase() === filters.action.toLowerCase();
+          }
+          if (filters.date && filters.date !== '') {
+            const txnDate = new Date(txn.time_stamp).toISOString().split('T')[0];
+            matches = matches && txnDate === filters.date;
+          }
+          return matches;
+        });
+      }
+
+      if (filteredTransactions.length > 0) {
+        filteredTransactions.forEach(txn => {
           tbody.innerHTML += `
             <tr>
               <td>${new Date(txn.time_stamp).toLocaleString()}</td>
@@ -363,6 +584,77 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Filter Transactions Modal Logic
+  const filterModal = new bootstrap.Modal(document.getElementById('filterTransactionsModal'));
+  const companyFilterCheckbox = document.getElementById('companyFilterCheckbox');
+  const actionFilterCheckbox = document.getElementById('actionFilterCheckbox');
+  const dateFilterCheckbox = document.getElementById('dateFilterCheckbox');
+  const companyFilter = document.getElementById('companyFilter');
+  const actionFilter = document.getElementById('actionFilter');
+  const dateFilter = document.getElementById('dateFilter');
+
+  companyFilterCheckbox.addEventListener('change', (e) => {
+    companyFilter.style.display = e.target.checked ? 'block' : 'none';
+  });
+  actionFilterCheckbox.addEventListener('change', (e) => {
+    actionFilter.style.display = e.target.checked ? 'block' : 'none';
+  });
+  dateFilterCheckbox.addEventListener('change', (e) => {
+    dateFilter.style.display = e.target.checked ? 'block' : 'none';
+  });
+
+  document.getElementById('filterTransactionsForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const filters = {};
+
+    if (companyFilterCheckbox.checked) {
+      const companyValue = document.getElementById('companyFilterSelect').value;
+      if (!companyValue) {
+        showToast('Please select a company for the company filter.', false);
+        return;
+      }
+      filters.company = companyValue;
+    }
+    if (actionFilterCheckbox.checked) {
+      const actionValue = document.getElementById('actionFilterSelect').value;
+      if (!actionValue) {
+        showToast('Please select an action for the action filter.', false);
+        return;
+      }
+      filters.action = actionValue;
+    }
+    if (dateFilterCheckbox.checked) {
+      const dateValue = document.getElementById('dateFilterInput').value;
+      if (!dateValue) {
+        showToast('Please select a date for the date filter.', false);
+        return;
+      }
+      filters.date = dateValue;
+    }
+
+    if (Object.keys(filters).length === 0) {
+      showToast('Please select at least one filter criterion.', false);
+      return;
+    }
+
+    loadTransactions(filters);
+    filterModal.hide();
+  });
+
+  document.getElementById('resetFilterBtn').addEventListener('click', () => {
+    companyFilterCheckbox.checked = false;
+    actionFilterCheckbox.checked = false;
+    dateFilterCheckbox.checked = false;
+    companyFilter.style.display = 'none';
+    actionFilter.style.display = 'none';
+    dateFilter.style.display = 'none';
+    document.getElementById('companyFilterSelect').value = '';
+    document.getElementById('actionFilterSelect').value = '';
+    document.getElementById('dateFilterInput').value = '';
+    loadTransactions();
+    filterModal.hide();
+  });
+
   // Update Portfolio Chart (Pie Chart)
   function updatePortfolioChart(portfolio) {
     const ctx = document.getElementById('portfolioChart').getContext('2d');
@@ -380,9 +672,7 @@ document.addEventListener("DOMContentLoaded", () => {
         datasets: [{
           label: 'Portfolio Value by Company ($)',
           data: values,
-          backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
-          borderColor: ['#fff'],
-          borderWidth: 2
+          backgroundColor: ['#ec4899', '#8b5cf6', '#3b82f6', '#a278ff'],
         }]
       },
       options: {
@@ -391,12 +681,12 @@ document.addEventListener("DOMContentLoaded", () => {
         plugins: {
           legend: {
             position: 'top',
-            labels: { color: '#000', font: { size: 14 } }
+            labels: { color: '#e5e7eb', font: { size: 14 } }
           },
           title: {
             display: true,
             text: 'Portfolio Distribution',
-            color: '#000',
+            color: '#e5e7eb',
             font: { size: 18 }
           }
         }
