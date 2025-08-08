@@ -16,7 +16,7 @@ This project is the frontend application for the Portfolio Management System. It
 1. Clone the repository to your local machine.
 2. Navigate to the project directory:
    ```bash
-   cd Actual-frontend
+   cd frontend
    ```
 3. Install dependencies:
    ```bash
