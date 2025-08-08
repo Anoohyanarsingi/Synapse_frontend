@@ -1,54 +1,54 @@
-# Investment Dashboard
-A web-based application for managing stock portfolios and settlement accounts, featuring a responsive UI built with Bootstrap, Chart.js for visualizations, and a dynamic gradient background. The app allows users to track stock holdings, manage funds, and view transaction history with an interactive dashboard.
+Portfolio Management System - Frontend
+Description
+This project is the frontend application for the Portfolio Management System. It provides a user interface for users to manage their portfolio holdings, view transaction history, and interact with their settlement account. It is built using React and communicates with the backend API.
+Features
 
-## Features
+View and manage portfolio holdings.
+View transaction history.
+Manage settlement account (view balance, add funds, withdraw funds, view statements).
 
-- Main Dashboard: Navigate to Portfolio Manager and Settlement Account.
-- Portfolio Manager:
-- Add, remove, or liquidate stock holdings.
-- View portfolio summary and transaction history.
-- Visualize portfolio distribution with a pie chart.
+Prerequisites
 
+Node.js (v16 or higher)
+npm (Node Package Manager)
 
-Responsive design with animated gradient backgrounds.
-Toast notifications for user actions.
-Tooltips for enhanced user interaction.
+Setup Instructions
 
-## Technologies
-
-### Frontend:
-HTML5, CSS3, JavaScript (ES6+)
-Bootstrap 5.3.3
-Chart.js for data visualizations
-Animate.css for animations
+Clone the repository to your local machine.
+Navigate to the project directory:cd Actual-frontend
 
 
-### External Libraries:
-Bootstrap Icons
-Google Fonts (Inter, Poppins)
+Install dependencies:npm install
 
 
-## Installation
+Ensure the backend server is running and note its URL (e.g., http://localhost:5000).
+Create a .env file in the project root with the following content:REACT_APP_API_URL=<backend-url>
 
-Clone the repository:git clone https://github.com/your-username/investment-dashboard.git
-
-
-Navigate to the project directory:cd investment-dashboard
-
-
-Serve the application using a local server (e.g., Live Server in VS Code or any static file server).
-Ensure the backend API is running on http://localhost:5001 with the required endpoints.
-
-## Usage
-
-Open the application in a browser.
-From the main dashboard (index.html), navigate to:
-Portfolio Manager: Manage stock holdings, view transactions, and see portfolio distribution.
-Settlement Account: Add/withdraw funds, view balance, and track statement history.
+Replace <backend-url> with the actual URL of the backend server.
+Start the development server:npm start
 
 
-Use modals to add/remove assets or funds, with real-time updates to tables and charts.
-Toast notifications confirm actions or display errors.
+Open your browser and navigate to http://localhost:3000 to access the application.
+
+Main Pages
+
+Portfolio: Allows users to view their current holdings, add new holdings, remove specific holdings, or remove all holdings of a company.
+Transaction History: Displays a list of past transactions.
+Settlement Account: Shows the current balance, allows users to add or withdraw funds, and view account statements.
+
+Project Structure
+Actual-frontend/
+├── public/                     # Public assets
+├── src/                        # Source files
+│   ├── components/             # Reusable components
+│   ├── pages/                  # Page components
+│   ├── services/               # API service
+│   ├── App.js                  # Main App component
+│   ├── index.js                # Entry point
+│   └── ...
+├── .env                        # Environment variables
+├── package.json                # Project dependencies and scripts
+└── README.md                   # Project documentation
 
 License
-This project is licensed under the MIT License.
+This project is licensed under the ISC License.
